@@ -1,5 +1,3 @@
-var background = chrome.extension.getBackgroundPage();
-
 function saveOptions() {
 	chrome.storage.sync.set(
 		{

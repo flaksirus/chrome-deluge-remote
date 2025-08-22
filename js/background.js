@@ -58,10 +58,10 @@ function getBackground ($) {
 
 	function badgeText(text, colour) {
 		debug_log("badgeText: "+text+", "+colour);
-		chrome.browserAction.setBadgeText({"text": text});
-		chrome.browserAction.setBadgeBackgroundColor({"color": colour});
+		chrome.action.setBadgeText({"text": text});
+		chrome.action.setBadgeBackgroundColor({"color": colour});
 		setTimeout(function(){
-			chrome.browserAction.setBadgeText({text: ""});
+			chrome.action.setBadgeText({text: ""});
 		}, ExtensionConfig.badge_timeout);
 	}
 
@@ -140,7 +140,7 @@ function getBackground ($) {
 									// Wrong login - not much we can do, try
 									// checking in a bit.
 									debug_log("Deluge: Incorrect login details.");
-									statusTimer = setTimeout(check_status, STATUS_CHECK_ERROR_INTERVAL);
+									statusTimer = setTimeout(pub.checkStatus, STATUS_CHECK_ERROR_INTERVAL);
 									pub.deactivate();
 									autoLoginFailed();
 								}
@@ -182,8 +182,8 @@ function getBackground ($) {
 	 */
 	pub.activate = function () {
 		debug_log("Deluge: Extension activated");
-		chrome.browserAction.setIcon({path: "images/icons/deluge_active.png"});
-		chrome.browserAction.setTitle({
+		chrome.action.setIcon({path: "images/icons/deluge_active.png"});
+		chrome.action.setTitle({
 			title: chrome.i18n.getMessage("browser_title")
 		});
 		// Send activation to anything listening.
@@ -196,8 +196,8 @@ function getBackground ($) {
 	 */
 	pub.deactivate = function () {
 		debug_log("Extension deactivated");
-		chrome.browserAction.setIcon({path: "images/icons/deluge.png"});
-		chrome.browserAction.setTitle({
+		chrome.action.setIcon({path: "images/icons/deluge.png"});
+		chrome.action.setTitle({
 			title: chrome.i18n.getMessage("browser_title_disabled")
 		});
 		// Send deactivation to anything listening.
@@ -355,7 +355,7 @@ function getBackground ($) {
 			contextMenu = chrome.contextMenus.create({
 				"id": "context_links",
 				"title": "Send to Deluge",
-				"contexts":[chrome.contextMenus.ContextType.LINK]
+				"contexts":["link"]
 			});
 			chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 			debug_log("Created contextMenu");
@@ -411,6 +411,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 				}
 			);
 			break;
+		case "checkStatus":
+			if (Background) {
+				Background.checkStatus(request.params)
+					.success(function(response) {
+						sendResponse({success: true, result: response});
+					})
+					.error(function(jqXHR, text, err) {
+						sendResponse({success: false, error: {jqXHR: jqXHR, text: text, err: err}});
+					});
+			} else {
+				sendResponse({success: false, error: "Background not initialized"});
+			}
+			return true; // Will respond asynchronously
 		case "add_torrent_from_url":
 			debug_log("Adding torrent from URL: "+request.url)
 			Background.addTorrentFromUrl(request, sender, sendResponse);

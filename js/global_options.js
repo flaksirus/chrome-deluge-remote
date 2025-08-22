@@ -26,7 +26,8 @@ jQuery(document).ready(function ($) {
 	//Load the options
 	chrome.storage.sync.get(function(items) {
 		ExtensionConfig = items;
-		if (chrome.extension.getBackgroundPage && chrome.extension.getBackgroundPage() == window) {	//If running in background page
+		// For service workers, we check if we're in the background context differently
+		if (typeof importScripts !== 'undefined') {	//If running in service worker context
 			start();	//Start the extension - function is located in background.js
 		}
 	});

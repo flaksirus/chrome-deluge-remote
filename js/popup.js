@@ -6,9 +6,7 @@
  * - Logic for action buttons.
  */
 $(function() {
-	// Get extension background page for use within the code.
-	var backgroundPage = chrome.extension.getBackgroundPage();
-		// Store the extension activation state.
+	// Store the extension activation state.
 	var extensionActivated = false;
 	var checked = [];
 		// Set the initial height for the overlay.
@@ -389,30 +387,35 @@ $(function() {
 	 * the table.
 	 */
 	function checkStatus() {
-		backgroundPage.Background.checkStatus({ timeout: 1000 }).success(function (response) {
-			if (response === false) {
-				// Most likely still waiting on daemon to start.
-				$("span", $overlay).removeClass().addClass("error").html(
-					chrome.i18n.getMessage("error_daemon_not_running")
-				);
-				$overlay.show();
+		chrome.runtime.sendMessage(
+			{method: "checkStatus", params: { timeout: 1000 }}, 
+			function(response) {
+				if (response && response.success) {
+					if (response.result === false) {
+						// Most likely still waiting on daemon to start.
+						$("span", $overlay).removeClass().addClass("error").html(
+							chrome.i18n.getMessage("error_daemon_not_running")
+						);
+						$overlay.show();
+					}
+				} else if (response && !response.success) {
+					var message = chrome.i18n.getMessage("error_generic");
+					/*
+					 * Ignore any unauthenticated errors here - they are normally
+					 * resolved by an auto login in the background stuff and is normally
+					 * sorted before this message can be fully displayed.
+					 *
+					 * We will instead receive errors from the global event for auto
+					 * login failure to display the message to the user - see
+					 * autoLoginFailed and Chrome extension addListner.
+					 */
+					if (response.error && response.error.err && response.error.err.code !== Deluge.API_AUTH_CODE) {
+						$("span", $overlay).removeClass().addClass("error").html(message);
+						$overlay.show();
+					}
+				}
 			}
-		}).error(function (jqXHR, text, err) {
-			var message = chrome.i18n.getMessage("error_generic");
-			/*
-			 * Ignore any unauthenticated errors here - they are normally
-			 * resolved by an auto login in the background stuff and is normally
-			 * sorted before this message can be fully displayed.
-			 *
-			 * We will instead receive errors from the global event for auto
-			 * login failure to display the message to the user - see
-			 * autoLoginFailed and Chrome extension addListner.
-			 */
-			if (err.code !== Deluge.API_AUTH_CODE) {
-				$("span", $overlay).removeClass().addClass("error").html(message);
-				$overlay.show();
-			}
-		});
+		);
 	}
 
 	// This function is called when the background page sends an activated
